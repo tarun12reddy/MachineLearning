@@ -1,0 +1,76 @@
+
+Practical Machine Learning Assignment
+=============================================================
+#### Executive Summary
+Used Decision Tree Approach to categorize the classe variable. Shortlisted the 6 most appropriate predictors from out of the 160 predictor variables. Got a 60% success rate on the test set.
+
+##### Cross Validation
+For this problem it is important to find the correct features that would help in developing an appropriate decision tree. So we divide our train data into train and test set. Now each time we check for the train train set the best input features using this 3 step approach
+1. Remove all Near Zero Variance Predictors
+2. Check for correlation between the classe and other variables and one with > 0.15 are selected
+3. Removing variables like min, max, avg, amplitude, stddev and var
+
+We take the union of final variables for each loop.
+```{r}
+rm(list = ls())
+training <- read.csv("train.csv")
+temp_train <- training
+library(caret); library(kernlab);
+set.seed(3223)
+final_id <- c(0)
+a <- c(0)
+for (j in 1: 10){
+training[, 160] <- as.numeric(training[, 160])
+t <- createDataPartition(training$classe, p = 0.8, list = FALSE)
+train_train <- training[t, ]
+train_test <- training[-t, ]
+nzv <- nearZeroVar(train_train, saveMetrics = TRUE)
+
+var <- colnames(train_train)
+s_var <- nzv$nzv == FALSE
+k <- 1
+names <- colnames(training)
+xx <- c("min_", "max_", "avg_", "stddev_", "var_", "amplitude_", "cvtd_timestamp", "user_name")
+for (i in 1: length(xx)){
+  temp_id <- grep(pattern = xx[i], x = names, value = FALSE)
+  nzv$nzv[temp_id] <- TRUE
+}
+id <- c(0, length(nzv$nzv == FALSE))
+for (i in 1: length(nzv$nzv)){
+  if(nzv$nzv[i] == FALSE){
+    id[k] <- i
+    k <- k+1
+  }
+}
+k <- 1
+new_id = c(0)
+corr = c(0)
+for (i in 2:length(id)-1){
+  i
+  corr[i] <- cor((train_train[, 160]), train_train[, id[i]])
+  if (corr[i] > 0.15){
+    new_id[k] <- id[i]
+    k <- k + 1
+  }
+    a <- union(new_id, a)
+  }
+}
+```
+
+We will have six predictor variables
+1. "accel_arm_x" 2. "magnet_arm_x" 3. "magnet_dumbbell_z" 4. "pitch_forearm" 5. "total_accel_forearm" 6. "cvtd_timestamp"
+
+### Decision Tree fit for these variables
+```{r}
+modFit <- train(classe ~ accel_arm_x + magnet_arm_x + cvtd_timestamp + magnet_dumbbell_z + pitch_forearm + total_accel_forearm, method = "rpart", data = temp_train)
+plot(modFit$finalModel, uniform = TRUE, main = "Classification Tree")
+text(modFit$finalModel, use.n = TRUE, all = TRUE, cex = .8)
+library(rattle)
+fancyRpartPlot(modFit$finalModel)
+```
+
+### Calculating results on test set
+```{r}
+test <- read.csv("test.csv")
+ans <- predict(modFit, newdata = test)
+```
